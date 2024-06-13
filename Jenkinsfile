@@ -44,6 +44,37 @@ pipeline {
                 }
             }
         }
+        stage('Setup hadolint')
+        {
+            when{
+                expression{
+                    return env.BRANCH_NAME != null
+                }
+            }
+            stage('Install Hadolint') {
+                steps {
+                    script {
+                            sh '''
+                            # Check if Hadolint is already installed and at the desired version
+                            if ! command -v hadolint &>/dev/null || [[ "$(hadolint --version)" != *"v2.10.0"* ]]; then
+                                echo "Hadolint not found or not the desired version, installing..."
+                                
+                                # Download Hadolint binary
+                                wget -O /usr/local/bin/hadolint https://github.com/hadolint/hadolint/releases/download/v2.10.0/hadolint-Linux-x86_64
+                                
+                                # Make it executable
+                                chmod +x /usr/local/bin/hadolint
+                            else
+                                echo "Hadolint is already installed and at the correct version."
+                            fi
+
+                            # Verify installation
+                            hadolint --version
+                            '''
+                        }
+                }
+            }
+        }
         stage('Setup semantic,github-release & yq'){
             when{
                 expression{
@@ -90,6 +121,20 @@ pipeline {
                     cat ./.releaserc
                     npx semantic-release
                     '''
+                }
+            }
+        }
+        stage('Lint Dockerfile') {
+            when {
+                expression {
+                    // Check if the BRANCH_NAME is null
+                    return env.BRANCH_NAME != null
+                }
+            }
+            steps {
+                script {
+                    // Run Hadolint on the Dockerfile, fail the build if any issues are detected
+                    sh 'hadolint Dockerfile'
                 }
             }
         }
@@ -226,10 +271,10 @@ pipeline {
     }
     post {
         success {
-            echo 'Docker image pushed successfully!'
+            echo 'Docker image or linting is sucessful pushed successfully!'
         }
         failure {
-            echo 'Docker image push failed!'
+            echo 'Docker image push failed! Check the build logs for more details.'
         }
     }
 }
