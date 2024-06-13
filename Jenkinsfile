@@ -51,28 +51,26 @@ pipeline {
                     return env.BRANCH_NAME != null
                 }
             }
-            stage('Install Hadolint') {
-                steps {
-                    script {
-                            sh '''
-                            # Check if Hadolint is already installed and at the desired version
-                            if ! command -v hadolint &>/dev/null || [[ "$(hadolint --version)" != *"v2.10.0"* ]]; then
-                                echo "Hadolint not found or not the desired version, installing..."
-                                
-                                # Download Hadolint binary
-                                wget -O /usr/local/bin/hadolint https://github.com/hadolint/hadolint/releases/download/v2.10.0/hadolint-Linux-x86_64
-                                
-                                # Make it executable
-                                chmod +x /usr/local/bin/hadolint
-                            else
-                                echo "Hadolint is already installed and at the correct version."
-                            fi
+            steps {
+                script {
+                        sh '''
+                        # Check if Hadolint is already installed and at the desired version
+                        if ! command -v hadolint &>/dev/null || [[ "$(hadolint --version)" != *"v2.10.0"* ]]; then
+                            echo "Hadolint not found or not the desired version, installing..."
+                            
+                            # Download Hadolint binary
+                            wget -O /usr/local/bin/hadolint https://github.com/hadolint/hadolint/releases/download/v2.10.0/hadolint-Linux-x86_64
+                            
+                            # Make it executable
+                            chmod +x /usr/local/bin/hadolint
+                        else
+                            echo "Hadolint is already installed and at the correct version."
+                        fi
 
-                            # Verify installation
-                            hadolint --version
-                            '''
-                        }
-                }
+                        # Verify installation
+                        hadolint --version
+                        '''
+                    }
             }
         }
         stage('Setup semantic,github-release & yq'){
