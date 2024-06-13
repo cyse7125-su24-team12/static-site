@@ -9,6 +9,7 @@ pipeline {
         GH_TOKEN = credentials('github-pat')
         REPO_NAME = "static-site"
         REPO_OWNER = "cyse7125-su24-team12" // D
+        DOCKER_BUILDER_NAME = 'static-builder'
     }
     stages {
         stage('Checkout') {
@@ -156,7 +157,17 @@ pipeline {
 
             echo "The extracted release tag is: $release_tag"
             # Create and use builder instance
-            docker buildx create --name static-builder --use
+            # Check if the builder DOCKER_BUILDER already exists
+            if ! docker buildx ls | grep -q "${DOCKER_BUILDER_NAME}"; then
+                echo "Builder does not exist. Creating builder..."
+                # Create the builder
+                docker buildx create --name "${DOCKER_BUILDER_NAME}" --driver docker-container
+            else
+                echo "Builder already exists."
+            fi
+
+            # Use the builder
+            docker buildx use "${DOCKER_BUILDER_NAME}"
 
             docker buildx ls
 
@@ -179,13 +190,13 @@ pipeline {
             steps{
                 script{
                     sh '''
-                        #Remove the builder instance
-                        docker buildx rm static-builder
-
-                        docker buildx ls 
-
-                        #remove check for images local
-                        docker images
+                        # Check if the builder "${BUILDER_NAME}" exists
+                        if docker buildx ls | grep -q "${BUILDER_NAME}"; then
+                            echo "Builder exists. Removing builder..."
+                            docker buildx rm "${BUILDER_NAME}"
+                        else
+                            echo "Builder does not exist or already removed."
+                        fi
                     '''
                 }
             }
