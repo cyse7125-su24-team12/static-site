@@ -125,7 +125,16 @@ pipeline {
             docker buildx rm static-builder
 
             docker buildx ls 
-            
+
+            #remove the image from local
+            docker rmi ${DOCKERHUB_REPO}:${release_tag}
+
+            #remove the image from local
+            docker rmi ${DOCKERHUB_REPO}:${BUILD_NUMBER}
+
+            #remove check for images local
+            docker images
+
             # Logout from Docker Hub
             docker logout
             '''
