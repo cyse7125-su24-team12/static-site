@@ -114,13 +114,18 @@ pipeline {
 
             echo "The extracted release tag is: $release_tag"
             # Create and use builder instance
-            docker buildx create --use
+            docker buildx create --name static-builder --use
 
             docker buildx ls
 
             # Build and push Docker image
             docker buildx build --platform linux/amd64,linux/arm64 -t ${DOCKERHUB_REPO}:${release_tag} -t ${DOCKERHUB_REPO}:${BUILD_NUMBER} --push .
 
+            #Remove the builder instance
+            docker buildx rm static-builder
+
+            docker buildx ls 
+            
             # Logout from Docker Hub
             docker logout
             '''
