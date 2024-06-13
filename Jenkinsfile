@@ -4,8 +4,6 @@ pipeline {
         nodejs 'Node 20'
     }
     environment {
-        CURRENT_VERSION = currentVersion()
-        NEXT_VERSION = nextVersion()
         DOCKERHUB_REPO = 'bala699/csye7125'
         BUILD_NUMBER = 'latest'
         GH_TOKEN = credentials('github-pat')
@@ -28,7 +26,7 @@ pipeline {
         ])
             }
         }
-        stage('Setup Buildx') {
+      stage('Setup Buildx') {
             when {
                 expression {
                     // Check if the BRANCH_NAME is null
@@ -43,6 +41,88 @@ pipeline {
             chmod +x ~/.docker/cli-plugins/docker-buildx
             export PATH=$PATH:~/.docker/cli-plugins
           '''
+                }
+            }
+        }
+        stage('Setup semantic,github-release & yq'){
+            when{
+                expression{
+                    return env.BRANCH_NAME == null
+                }
+            }
+            steps{
+                script {
+                    sh '''
+                        npm install -g \
+                        semantic-release \
+                        @semantic-release/changelog \
+                        @semantic-release/github \
+                        @semantic-release/commit-analyzer \
+                        @semantic-release/release-notes-generator \
+                        @semantic-release/exec \
+                        @semantic-release/git 
+                        ls -a 
+                        npm install -g github-release-cli
+                    '''
+                }
+            }
+        }
+        stage(' semantic release'){
+            when{
+                expression{
+                    return env.BRANCH_NAME == null
+                }
+            }
+            steps{
+                script{
+                    writeFile file: '.releaserc', text: '''
+                    {
+                        "branches": ["main"],
+                        "plugins": [
+                            "@semantic-release/commit-analyzer",
+                            "@semantic-release/release-notes-generator",
+                            "@semantic-release/changelog",
+                            "@semantic-release/github",
+                        ]
+                    }
+                    '''
+                    sh '''
+                    cat ./.releaserc
+                    npx semantic-release
+                    '''
+                }
+            }
+        }
+        stage('Build and push the docker image using buildx') {
+            when {
+                expression {
+                    // Check if the BRANCH_NAME is null
+                    return env.BRANCH_NAME == null
+                }
+            }
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials-id', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD'),
+                    string(credentialsId: 'github-pat', variable: 'GH_TOKEN')]) {
+                    script {
+                        sh '''
+            # Login to Docker Hub
+            echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+
+            export GITHUB_TOKEN=$GH_TOKEN
+            release_id=$(github-release list --owner $REPO_OWNER  --repo $REPO_NAME | head -n 1 | egrep -o 'id=[0-9]+' | cut -d '=' -f 2)
+            release_tag=$(github-release list --owner $REPO_OWNER --repo $REPO_NAME | head -n 1 | grep -o 'tag_name="[^"]*"' | cut -d '"' -f 2 | sed 's/^v//')
+
+            echo "The extracted release tag is: $release_tag"
+            # Create and use builder instance
+            docker buildx create --use
+
+            # Build and push Docker image
+            docker buildx build --platform linux/amd64,linux/arm64 -t ${DOCKERHUB_REPO}:${release_tag} -t ${DOCKERHUB_REPO}:${BUILD_NUMBER} --push .
+
+            # Logout from Docker Hub
+            docker logout
+            '''
+                    }
                 }
             }
         }
@@ -121,102 +201,6 @@ pipeline {
                 }
             }
         }
-        stage('Setup semantic,github-release & yq'){
-            when{
-                expression{
-                    return env.BRANCH_NAME == null
-                }
-            }
-            steps{
-                script {
-                    sh '''
-                        npm install -g \
-                        semantic-release \
-                        @semantic-release/changelog \
-                        @semantic-release/github \
-                        @semantic-release/commit-analyzer \
-                        @semantic-release/release-notes-generator \
-                        @semantic-release/exec \
-                        @semantic-release/git 
-                        ls -a 
-                        npm install -g github-release-cli
-                    '''
-                }
-            }
-        }
-        stage(' semantic release'){
-            when{
-                expression{
-                    return env.BRANCH_NAME == null
-                }
-            }
-            steps{
-                script{
-                    writeFile file: '.releaserc', text: '''
-                    {
-                        "branches": ["main"],
-                        "plugins": [
-                            "@semantic-release/commit-analyzer",
-                            "@semantic-release/release-notes-generator",
-                            "@semantic-release/changelog",
-                            "@semantic-release/github",
-                        ]
-                    }
-                    '''
-                    sh '''
-                    cat ./.releaserc
-                    npx semantic-release
-                    '''
-                }
-            }
-        }
-                stage('Build and push the docker image using buildx') {
-            when {
-                expression {
-                    // Check if the BRANCH_NAME is null
-                    return env.BRANCH_NAME == null
-                }
-            }
-            steps {
-                withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials-id', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD'),
-                    string(credentialsId: 'github-pat', variable: 'GH_TOKEN')]) {
-                    script {
-                        sh '''
-            # Login to Docker Hub
-            echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-
-            export GITHUB_TOKEN=$GH_TOKEN
-            release_id=$(github-release list --owner $REPO_OWNER  --repo $REPO_NAME | head -n 1 | egrep -o 'id=[0-9]+' | cut -d '=' -f 2)
-            release_tag=release_tag=$(github-release list --owner $REPO_OWNER --repo $REPO_NAME | head -n 1 | grep -o 'tag_name="[^"]*"' | cut -d '"' -f 2 | sed 's/^v//')
-
-            echo "The extracted release tag is: $release_tag"
-            # Create and use builder instance
-            docker buildx create --use
-
-            # Build and push Docker image
-            docker buildx build --platform linux/amd64,linux/arm64 -t ${DOCKERHUB_REPO}:${BUILD_NUMBER} --push .
-
-            # Logout from Docker Hub
-            docker logout
-            '''
-                    }
-                }
-            }
-        }
-        stage('Get next version of the application ') {
-            when {
-                expression {
-                    // Check if the BRANCH_NAME is null
-                    return env.BRANCH_NAME != null
-                }
-            }
-            steps {
-                sh '''
-            echo "Current version : $CURRENT_VERSION"
-            echo "Next version using configuration plugin: $NEXT_VERSION"
-            '''
-            }
-        }
     }
     post {
         success {
@@ -227,6 +211,3 @@ pipeline {
         }
     }
 }
-
-
-/*
