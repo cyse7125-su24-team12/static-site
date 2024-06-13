@@ -59,10 +59,10 @@ pipeline {
                             echo "Hadolint not found or not the desired version, installing..."
                             
                             # Download Hadolint binary
-                            wget -O /usr/local/bin/hadolint https://github.com/hadolint/hadolint/releases/download/v2.10.0/hadolint-Linux-x86_64
+                            sudo wget -O /usr/local/bin/hadolint https://github.com/hadolint/hadolint/releases/download/v2.10.0/hadolint-Linux-x86_64
                             
                             # Make it executable
-                            chmod +x /usr/local/bin/hadolint
+                            sudo chmod +x /usr/local/bin/hadolint
                         else
                             echo "Hadolint is already installed and at the correct version."
                         fi
