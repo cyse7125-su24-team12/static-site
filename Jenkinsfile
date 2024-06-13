@@ -127,10 +127,10 @@ pipeline {
             docker buildx ls 
 
             #remove the image from local
-            docker rmi ${DOCKERHUB_REPO}:${release_tag}
+            #docker rmi ${DOCKERHUB_REPO}:${release_tag}
 
             #remove the image from local
-            docker rmi ${DOCKERHUB_REPO}:${BUILD_NUMBER}
+            #docker rmi ${DOCKERHUB_REPO}:${BUILD_NUMBER}
 
             #remove check for images local
             docker images
