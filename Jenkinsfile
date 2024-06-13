@@ -14,7 +14,6 @@ pipeline {
         stage('Checkout') {
             when {
                 expression {
-                    // Check if the BRANCH_NAME is null
                     return env.BRANCH_NAME == null
                 }
             }
