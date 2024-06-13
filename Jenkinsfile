@@ -26,7 +26,7 @@ pipeline {
         ])
             }
         }
-      stage('Setup Buildx') {
+        stage('Setup Buildx') {
             when {
                 expression {
                     // Check if the BRANCH_NAME is null
@@ -36,11 +36,11 @@ pipeline {
             steps {
                 script {
                     sh '''
-            mkdir -p ~/.docker/cli-plugins/
-            curl -sL https://github.com/docker/buildx/releases/download/v0.14.1/buildx-v0.14.1.linux-amd64 -o ~/.docker/cli-plugins/docker-buildx
-            chmod +x ~/.docker/cli-plugins/docker-buildx
-            export PATH=$PATH:~/.docker/cli-plugins
-          '''
+                        mkdir -p ~/.docker/cli-plugins/
+                        curl -sL https://github.com/docker/buildx/releases/download/v0.14.1/buildx-v0.14.1.linux-amd64 -o ~/.docker/cli-plugins/docker-buildx
+                        chmod +x ~/.docker/cli-plugins/docker-buildx
+                        export PATH=$PATH:~/.docker/cli-plugins
+                        '''
                 }
             }
         }
