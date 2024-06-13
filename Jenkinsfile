@@ -121,24 +121,30 @@ pipeline {
             # Build and push Docker image
             docker buildx build --platform linux/amd64,linux/arm64 -t ${DOCKERHUB_REPO}:${release_tag} -t ${DOCKERHUB_REPO}:${BUILD_NUMBER} --push .
 
-            #Remove the builder instance
-            docker buildx rm static-builder
-
-            docker buildx ls 
-
-            #remove the image from local
-            #docker rmi ${DOCKERHUB_REPO}:${release_tag}
-
-            #remove the image from local
-            #docker rmi ${DOCKERHUB_REPO}:${BUILD_NUMBER}
-
-            #remove check for images local
-            docker images
-
             # Logout from Docker Hub
             docker logout
             '''
                     }
+                }
+            }
+        }
+        stage('Docker clean up'){
+            when{
+                expression{
+                    return env.BRANCH_NAME == null
+                }
+            }
+            steps{
+                script{
+                    sh '''
+                        #Remove the builder instance
+                        docker buildx rm static-builder
+
+                        docker buildx ls 
+
+                        #remove check for images local
+                        docker images
+                    '''
                 }
             }
         }
