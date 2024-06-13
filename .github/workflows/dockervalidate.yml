@@ -1,0 +1,19 @@
+name: Docker Validator Workflow
+run-name: Validate Dockerfile
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+    branches:
+      - main
+jobs:
+ validate:
+        runs-on: ubuntu-latest
+        steps:
+         - name: Checkout code
+           uses: actions/checkout@v2
+         - name: Lint Dockerfile
+           uses: hadolint/hadolint-action@v1.6.0
+           with:
+            dockerfile: Dockerfile
